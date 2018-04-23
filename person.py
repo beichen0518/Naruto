@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
-from talent import *
-import debuff
+from Naruto.talent import *
+from Naruto.debuff import *
 
 
 class Role(object, metaclass=ABCMeta):
@@ -30,10 +30,6 @@ class Role(object, metaclass=ABCMeta):
     @property
     def hp(self):
         return self._hp
-
-    @hp.setter
-    def hp(self, hp):
-        self._hp = hp
 
     @property
     def limit_hp(self):
@@ -69,14 +65,21 @@ class Role(object, metaclass=ABCMeta):
         :param other: 攻击对象
         :return:
         """
-        s_remain = other.shield - self._attack
-        if s_remain < 0:
-            other.shield = 0
-            other.hp += s_remain
-            other.hp = other.hp if other.hp >= 0 else 0
-        else:
-            other.shield -= s_remain
+        other.reduce_shield(self._attack)
         return '%s使用了普通攻击对%s造成了%d的伤害' %(self._name, other.name, self._attack)
+
+    def reduce_shield(self, attack):
+        s_remain = self._shield - self._attack
+        if s_remain < 0:
+            self._shield = 0
+            self._hp += s_remain
+            self._hp = self._hp if self._hp >= 0 else 0
+        else:
+            self._shield -= s_remain
+
+    def reduce_hp(self, re):
+        if self.hp > 0:
+            self._hp -= re
 
     def restore_hp(self, vol):
         """
@@ -139,5 +142,5 @@ class ZuoZhu(Role):
     def t_attack_to(self, other, warth):
         infor = self._talent.tian_zhao(other, warth)
         if infor:
-            other.debuffs['灼烧'] = debuff.Firing('灼烧')
+            other.debuffs['灼烧'] = Firing('灼烧')
             return '%s 使用了%s对%s造成了%d的伤害' % (self._name, infor[0], other.name, infor[1])

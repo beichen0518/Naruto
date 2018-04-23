@@ -22,7 +22,7 @@ class Firing(DeBuff):
     def take_effect(self, myself):
         if myself.hp > 0:
             re = myself.limit_hp // 20
-            myself.hp -= re
+            myself.reduce_hp(re)
             return self._name, re
 
 
