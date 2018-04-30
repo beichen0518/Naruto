@@ -1,10 +1,15 @@
+from random import randint
 from abc import ABCMeta, abstractmethod
+
+import pygame
+
 
 from Naruto.talent import *
 from Naruto.debuff import *
+from Naruto.skills import *
 
 
-class Role(object, metaclass=ABCMeta):
+class Person(object, metaclass=ABCMeta):
     """所有角色的父类"""
 
     def __init__(self, name, attack, hp, shield=0):
@@ -21,7 +26,9 @@ class Role(object, metaclass=ABCMeta):
         self._limit_hp = hp
         self._shield = shield
         self._debuffs = {}
-
+        self._pro_attack = 5
+        self._fir_skill = SkillAttack('')
+        self._image = ''
 
     @property
     def name(self):
@@ -52,32 +59,31 @@ class Role(object, metaclass=ABCMeta):
         self._shield = shield
 
     @property
-    def status(self):
-        return self._status
-
-    @property
     def debuffs(self):
         return self._debuffs
 
     def attack_to(self, other):
-        """
-        攻击
-        :param other: 攻击对象
-        :return:
-        """
-        other.reduce_shield(self._attack)
-        return '%s使用了普通攻击对%s造成了%d的伤害' %(self._name, other.name, self._attack)
+        choice = randint(1, 10)
+        if choice <= self._pro_attack:
+            other.reduce_shield(self._attack)
+            return '%s使用了普通攻击对%s造成了%d的伤害' % (self._name, other.name, self._attack)
+        else:
+            info = self._fir_skill.is_used(self._attack)
+            other.reduce_shield(info['value'])
+            return '%s使用了%s对%s造成了%d的伤害' % (self._name, info['name'], other.name, info['value'])
 
     def reduce_shield(self, attack):
-        s_remain = self._shield - self._attack
+        """减少护盾"""
+        s_remain = self._shield - attack
         if s_remain < 0:
             self._shield = 0
             self._hp += s_remain
             self._hp = self._hp if self._hp >= 0 else 0
         else:
-            self._shield -= s_remain
+            self._shield = s_remain
 
     def reduce_hp(self, re):
+        """减少血"""
         if self.hp > 0:
             self._hp -= re
 
@@ -108,7 +114,13 @@ class Role(object, metaclass=ABCMeta):
         debuffs = ''
         for debuff in self._debuffs.keys():
             debuffs += debuff + ' '
-        return '%s的生命值为 %d \n debuff : %s'% (self._name, self._hp, debuffs)
+        return '%s的生命值为 %d \n 护盾为%d \n debuff : %s' % \
+               (self._name, self._hp, self._shield, debuffs)
+
+    def draw(self, screen, x, y):
+        person = pygame.image.load(self._image).convert()
+        screen.blit(person, (x, y))
+
 
     # @abstractmethod
     # def ninjutsu(self):
@@ -121,26 +133,66 @@ class Role(object, metaclass=ABCMeta):
             return True
 
 
-class MingRen(Role):
+class MingRen(Person):
 
     def __init__(self, name, attack, hp, shield=0):
         super().__init__(name, attack, hp)
         self._talent = RenZhuLi('尾兽化')
-
+        self._fir_skill = SkillAttack('螺旋丸')
+        self._sec_skill = XianRen('仙人模式')
+        self._th_skill = LiuDao('六道模式')
+        self._image = './images/鸣人普通状态1.jpg'
 
     def t_use(self):
-        infor = self._talent.wei_show_hua(self)
-        return '%s使用了%s'%(self.name, infor)
+        info = self._talent.wei_shou_hua(self)
+        if info is not None:
+            self._image = './images/鸣人尾兽化1.jpg'
+        return '%s使用了%s' % (self.name, info)
+
+    def sec_use(self):
+        info = self._sec_skill.is_used(self)
+        if info is not None:
+            self._image = './images/鸣人仙人模式1.jpg'
+        return info
+
+    def th_use(self, *others):
+        info = self._th_skill.is_used(self, *others)
+        if info is not None:
+            self._image = './images/鸣人六道模式1.jpg'
+        return info
 
 
-class ZuoZhu(Role):
+class ZuoZhu(Person):
 
     def __init__(self, name, attack, hp, shield=0):
         super().__init__(name, attack, hp)
+        self._is_xuzuo = False
         self._talent = XieLunYan('天照')
+        self._fir_skill = SkillAttack('千鸟')
+        self._sec_skill = XuZuo('须佐能乎')
+        self._th_skill = JianYu('建御雷神')
+        self._image = './images/佐助普通模式1.jpg'
+
+    @property
+    def is_xuzuo(self):
+        return self._is_xuzuo
+
+    @is_xuzuo.setter
+    def is_xuzuo(self, is_xuzuo):
+        self._is_xuzuo = is_xuzuo
 
     def t_attack_to(self, other, warth):
         infor = self._talent.tian_zhao(other, warth)
         if infor:
             other.debuffs['灼烧'] = Firing('灼烧')
             return '%s 使用了%s对%s造成了%d的伤害' % (self._name, infor[0], other.name, infor[1])
+
+    def sec_use(self):
+        info = self._sec_skill.is_used(self)
+        if info is not None:
+            self._image = './images/佐助须佐能乎1.jpg'
+        return info
+
+    def th_use(self, *others):
+        info = self._th_skill.is_used(self, *others)
+        return info

@@ -26,3 +26,7 @@ class Firing(DeBuff):
             return self._name, re
 
 
+class Paralysis(DeBuff):
+    """麻痹"""
+
+    pass

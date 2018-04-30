@@ -2,8 +2,6 @@ from random import randint
 from abc import ABCMeta
 
 
-
-
 class Talent(object, metaclass=ABCMeta):
 
     def __init__(self, name):
@@ -34,7 +32,7 @@ class RenZhuLi(Talent):
         super().__init__(name)
         self._status = False
 
-    def wei_show_hua(self, my):
+    def wei_shou_hua(self, my):
         if (not self._status) and my.hp <= 0.3 * my.limit_hp:
             my.attack *= 1.5
             my.restore_hp(my.limit_hp)
