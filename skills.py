@@ -23,7 +23,7 @@ class XianRen(Skill):
             myself.restore_sh(myself.limit_hp)
             myself.attack *= 2
             self._status = False
-            return '%s 使用了%s' % (myself.name, self._name)
+            return '%s使用了%s' % (myself.name, self._name)
 
 
 class LiuDao(Skill):
@@ -31,11 +31,13 @@ class LiuDao(Skill):
     def is_used(self, myself, *others):
         if self._status and myself.hp < myself.limit_hp * 0.15:
             myself.attack *= 1.5
-            myself.restore_hp(myself.limit_hp * 0.5)
+            restore = myself.limit_hp * 0.5
             for other in others:
-                other.restore_sh(myself.limit_hp * 0.5)
+                if not other.is_die():
+                    other.restore_sh(restore)
+                    other.restore_hp(restore)
             self._status = False
-            return '%s使用了%s' % (myself.name, self._name)
+            return '%s使用了%s,我方全体恢复%d的hp和%d的护盾' % (myself.name, self._name, restore, restore)
 
 
 class XuZuo(Skill):
@@ -53,13 +55,15 @@ class JianYu(Skill):
 
     def is_used(self, myself, *others):
         if myself.is_xuzuo and randint(1,5) == 5:
-            s_name = ''
             for other in others:
-                a_num =myself.attack * 2
-                other.reduce_shield(a_num)
-                s_name += other.name + ' '
-            return ('%s 使用了 %s 对 %s 造成了 %d 的伤害' %
-                    (myself.name, self._name, s_name, a_num))
+                if not other.is_die():
+                    try:
+                        a_num = myself.attack * 2
+                        other.reduce_shield(a_num)
+                    except UnboundLocalError:
+                        pass
+            return ('%s使用了%s对敌方全体造成了%d的伤害' %
+                    (myself.name, self._name, a_num))
 
 
 

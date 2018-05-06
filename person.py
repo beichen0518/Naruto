@@ -1,18 +1,20 @@
 from random import randint
 from abc import ABCMeta, abstractmethod
 
+
 import pygame
 
 
 from Naruto.talent import *
 from Naruto.debuff import *
 from Naruto.skills import *
+from Naruto.tools import is_none
 
 
 class Person(object, metaclass=ABCMeta):
     """所有角色的父类"""
 
-    def __init__(self, name, attack, hp, shield=0):
+    def __init__(self, name, attack, hp, x=0, y=0, shield=0):
         """
         初始属性
         :param name: 角色名
@@ -29,6 +31,9 @@ class Person(object, metaclass=ABCMeta):
         self._pro_attack = 5
         self._fir_skill = SkillAttack('')
         self._image = ''
+        self._x = x
+        self._y = y
+        self._injured = False
 
     @property
     def name(self):
@@ -62,6 +67,22 @@ class Person(object, metaclass=ABCMeta):
     def debuffs(self):
         return self._debuffs
 
+    @property
+    def x(self):
+        return self._x
+
+    @x.setter
+    def x(self, x):
+        self._x = x
+
+    @property
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, y):
+        self._y = y
+
     def attack_to(self, other):
         choice = randint(1, 10)
         if choice <= self._pro_attack:
@@ -77,8 +98,7 @@ class Person(object, metaclass=ABCMeta):
         s_remain = self._shield - attack
         if s_remain < 0:
             self._shield = 0
-            self._hp += s_remain
-            self._hp = self._hp if self._hp >= 0 else 0
+            self.reduce_hp(-s_remain)
         else:
             self._shield = s_remain
 
@@ -86,6 +106,9 @@ class Person(object, metaclass=ABCMeta):
         """减少血"""
         if self.hp > 0:
             self._hp -= re
+            self._hp = self._hp if self._hp > 0 else 0
+        self._injured = True
+
 
     def restore_hp(self, vol):
         """
@@ -108,23 +131,27 @@ class Person(object, metaclass=ABCMeta):
         for debuff in self._debuffs.values():
             infor = debuff.take_effect(self)
             if infor:
-                yield '%s 受到了%d点的%s伤害' % (self._name, infor[1], infor[0])
+                yield '%s受到了%d点的%s伤害' % (self._name, infor[1], infor[0])
 
-    def __repr__(self):
+    def all_status(self):
         debuffs = ''
         for debuff in self._debuffs.keys():
             debuffs += debuff + ' '
-        return '%s的生命值为 %d \n 护盾为%d \n debuff : %s' % \
-               (self._name, self._hp, self._shield, debuffs)
+        return ['%s 攻击力：%d' % (self._name, self._attack), '生命：%d 护盾：%d' %
+                (self._hp, self._shield), '异常状态: %s' % debuffs]
 
     def draw(self, screen, x, y):
         person = pygame.image.load(self._image).convert()
+        if self._injured:
+            a_list = [1, -1, -1, 1]
+            for a in a_list:
+                person = pygame.transform.rotate(person, a)
+                screen.blit(person, (x, y))
+
+        if self.is_die():
+            person.set_alpha(100)
         screen.blit(person, (x, y))
-
-
-    # @abstractmethod
-    # def ninjutsu(self):
-    #     pass
+        self._injured = False
 
     def is_die(self):
         if self._hp > 0:
@@ -147,19 +174,25 @@ class MingRen(Person):
         info = self._talent.wei_shou_hua(self)
         if info is not None:
             self._image = './images/鸣人尾兽化1.jpg'
-        return '%s使用了%s' % (self.name, info)
+            return '%s使用了%s' % (self.name, info)
 
     def sec_use(self):
         info = self._sec_skill.is_used(self)
         if info is not None:
             self._image = './images/鸣人仙人模式1.jpg'
-        return info
+            return info
 
     def th_use(self, *others):
         info = self._th_skill.is_used(self, *others)
         if info is not None:
             self._image = './images/鸣人六道模式1.jpg'
-        return info
+            return info
+
+    def attack_s(self, other, myteams, others, warth):
+        info1 = self.t_use()
+        info2 = self.sec_use()
+        info3 = self.th_use(*myteams)
+        return is_none(info1, info2, info3)
 
 
 class ZuoZhu(Person):
@@ -185,14 +218,24 @@ class ZuoZhu(Person):
         infor = self._talent.tian_zhao(other, warth)
         if infor:
             other.debuffs['灼烧'] = Firing('灼烧')
-            return '%s 使用了%s对%s造成了%d的伤害' % (self._name, infor[0], other.name, infor[1])
+            return '%s使用了%s对%s造成了%d的伤害' % (self._name, infor[0], other.name, infor[1])
 
     def sec_use(self):
         info = self._sec_skill.is_used(self)
         if info is not None:
             self._image = './images/佐助须佐能乎1.jpg'
-        return info
+            return info
 
     def th_use(self, *others):
         info = self._th_skill.is_used(self, *others)
-        return info
+        if info is not None:
+            return info
+
+    def attack_s(self, other, myteams, others, warth):
+        info1 = self.t_attack_to(other, warth)
+        info2 = self.sec_use()
+        info3 = self.th_use(*others)
+        return is_none(info1, info2, info3)
+
+
+
