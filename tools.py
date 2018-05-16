@@ -16,3 +16,5 @@ def display_info(size, info, screen, x, y):
         info_board = info_text.get_rect()
         info_board.center = (x, y)
         screen.blit(info_text, info_board)
+
+

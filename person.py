@@ -6,7 +6,6 @@ import pygame
 
 
 from Naruto.talent import *
-from Naruto.debuff import *
 from Naruto.skills import *
 from Naruto.tools import is_none
 
@@ -34,6 +33,8 @@ class Person(object, metaclass=ABCMeta):
         self._x = x
         self._y = y
         self._injured = False
+        self._effect = False
+
 
     @property
     def name(self):
@@ -83,7 +84,16 @@ class Person(object, metaclass=ABCMeta):
     def y(self, y):
         self._y = y
 
+    @property
+    def effect(self):
+        return self._effect
+
+    @effect.setter
+    def effect(self, effect):
+        self._effect = effect
+
     def attack_to(self, other):
+
         choice = randint(1, 10)
         if choice <= self._pro_attack:
             other.reduce_shield(self._attack)
@@ -108,7 +118,6 @@ class Person(object, metaclass=ABCMeta):
             self._hp -= re
             self._hp = self._hp if self._hp > 0 else 0
         self._injured = True
-
 
     def restore_hp(self, vol):
         """
@@ -135,10 +144,16 @@ class Person(object, metaclass=ABCMeta):
 
     def all_status(self):
         debuffs = ''
+        del_debuffs = []
+        for key in self._debuffs:
+            if self._debuffs[key].effect_time == 0:
+                del_debuffs.append(key)
+        for del_debuff in del_debuffs:
+            del self._debuffs[del_debuff]
         for debuff in self._debuffs.keys():
             debuffs += debuff + ' '
-        return ['%s 攻击力：%d' % (self._name, self._attack), '生命：%d 护盾：%d' %
-                (self._hp, self._shield), '异常状态: %s' % debuffs]
+        return ['%s ATT：%d' % (self._name, self._attack), 'HP：%d SH：%d' %
+                (self._hp, self._shield), 'debuff: %s' % debuffs]
 
     def draw(self, screen, x, y):
         person = pygame.image.load(self._image).convert()
@@ -182,17 +197,19 @@ class MingRen(Person):
             self._image = './images/鸣人仙人模式1.jpg'
             return info
 
-    def th_use(self, *others):
-        info = self._th_skill.is_used(self, *others)
+    def th_use(self, myteams):
+        info = self._th_skill.is_used(self, myteams)
         if info is not None:
             self._image = './images/鸣人六道模式1.jpg'
             return info
 
     def attack_s(self, other, myteams, others, warth):
-        info1 = self.t_use()
-        info2 = self.sec_use()
-        info3 = self.th_use(*myteams)
-        return is_none(info1, info2, info3)
+        if not self._effect:
+            info1 = self.t_use()
+            info2 = self.sec_use()
+            info3 = self.th_use(myteams)
+            return is_none(info1, info2, info3)
+        return ['忍术发动失败']
 
 
 class ZuoZhu(Person):
@@ -216,8 +233,7 @@ class ZuoZhu(Person):
 
     def t_attack_to(self, other, warth):
         infor = self._talent.tian_zhao(other, warth)
-        if infor:
-            other.debuffs['灼烧'] = Firing('灼烧')
+        if infor is not None:
             return '%s使用了%s对%s造成了%d的伤害' % (self._name, infor[0], other.name, infor[1])
 
     def sec_use(self):
@@ -226,16 +242,133 @@ class ZuoZhu(Person):
             self._image = './images/佐助须佐能乎1.jpg'
             return info
 
-    def th_use(self, *others):
-        info = self._th_skill.is_used(self, *others)
+    def th_use(self, others):
+        info = self._th_skill.is_used(self, others)
         if info is not None:
             return info
 
     def attack_s(self, other, myteams, others, warth):
-        info1 = self.t_attack_to(other, warth)
-        info2 = self.sec_use()
-        info3 = self.th_use(*others)
-        return is_none(info1, info2, info3)
+        if not self._effect:
+            info1 = self.t_attack_to(other, warth)
+            info2 = self.sec_use()
+            info3 = self.th_use(others)
+            return is_none(info1, info2, info3)
+        return ['忍术发动失败']
+
+
+class Kai(Person):
+
+    def __init__(self, name, attack, hp, shield=0):
+        super().__init__(name, attack, hp)
+        self._talent = WarmBlood('生命绽放')
+        self._fir_skill = SkillAttack('朝孔雀')
+        self._sec_skill = ZhouHu('昼虎')
+        self._th_skill = XiXiang('夕象')
+        self._image = './images/迈特凯.jpg'
+
+    def t_use(self):
+        info = self._talent.life_bloom(self)
+        if info is not None:
+            return '%s使用了%s' % (self.name, info[0])
+
+    def sec_use(self, other, warth):
+        info = self._sec_skill.is_used(self, other, warth)
+        if info is not None:
+            return info
+
+    def th_use(self, other, warth):
+        info = self._th_skill.is_used(self, other, warth)
+        if info is not None:
+            return info
+
+    def attack_s(self, other, myteams, others, warth):
+        if not self._effect:
+            info1 = self.t_use()
+            info2 = self.sec_use(other, warth)
+            info3 = self.th_use(other, warth)
+            return is_none(info1, info2, info3)
+        return ['忍术发动失败']
+
+
+class ChunYeYing(Person):
+
+    def __init__(self, name, attack, hp, shield=0):
+        super().__init__(name, attack, hp)
+        self._baihao = False
+        self._talent = GuaLi('怪力')
+        self._fir_skill = SkillAttack('春诛打')
+        self._sec_skill = ZhangXianShu('掌仙术')
+        self._th_skill = BaiHao('百豪之术')
+        self._image = './images/小樱.jpg'
+        self._talent.guali(self)
+
+    @property
+    def baihao(self):
+        return self._baihao
+
+    @baihao.setter
+    def baihao(self, baihao):
+        self._baihao = baihao
+
+    def sec_use(self, myteams):
+        info = self._sec_skill.is_used(self, myteams)
+        if info is not None:
+            return info
+
+    def th_use(self, warth):
+        info = self._th_skill.is_used(self, warth)
+        if info is not None:
+            self._image = './images/小樱百豪之术.jpg'
+            return info
+
+    def attack_s(self, other, myteams, others, warth):
+        if not self._effect:
+            info2 = self.sec_use(myteams)
+            info3 = self.th_use(warth)
+            return is_none(info2, info3)
+        return ['忍术发动失败']
+
+
+class DaSheWan(Person):
+
+    def __init__(self, name, attack, hp, shield=0):
+        super().__init__(name, attack, hp)
+        self._talent = BaiShe('白蛇之身')
+        self._fir_skill = SkillAttack('潜影蛇肢')
+        self._sec_skill = SheNiZhouFu('蛇睨咒缚')
+        self._th_skill = HuiTuZhuanSheng('秽土转生')
+        self._image = './images/大蛇丸.jpg'
+
+    def t_use(self):
+        info = self._talent.baishe(self)
+        if info is not None:
+            return '%s的%s生效，恢复%s的生命' % (self.name, info[0], info[1])
+
+    def sec_use(self, other, warth):
+        info = self._sec_skill.is_used(self, other, warth)
+        if info is not None:
+            return info
+
+    def th_use(self, myteams, warth):
+        info = self._th_skill.is_used(self, myteams, warth)
+        if info is not None:
+            return info
+
+    def attack_s(self, other, myteams, others, warth):
+        if not self._effect:
+            info1 = self.t_use()
+            info2 = self.sec_use(other, warth)
+            info3 = self.th_use(myteams, warth)
+            return is_none(info1, info2, info3)
+        return ['忍术发动失败']
+
+
+
+
+
+
+
+
 
 
 

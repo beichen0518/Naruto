@@ -14,6 +14,7 @@ class Role(object, metaclass=ABCMeta):
         self._init_x = 0
         self._init_y = 0
         self._info = []
+        self._warth = 0
 
     @property
     def teams(self):
@@ -38,6 +39,15 @@ class Role(object, metaclass=ABCMeta):
     @property
     def name(self):
         return self._name
+
+    @property
+    def warth(self):
+        return self._warth
+
+    def add_warth(self, val):
+        self._warth += val
+        if self._warth < 0:
+            self._warth = 0
 
     def clear_info(self):
         self._info = []
@@ -88,9 +98,10 @@ class Role(object, metaclass=ABCMeta):
             self._info.append(info)
 
             for _ in range(times):
+                sleep(0.05)
                 self._teams[self._range].x += x_speed
                 self._teams[self._range].y += y_speed
-                sleep(0.05)
+
         self._range += 1
         self._range %= 5
 
@@ -99,10 +110,10 @@ class Role(object, metaclass=ABCMeta):
             for info in team.debuffs_effect():
                 self._info.append(info)
 
-    def skill_attack(self, other, warth):
+    def skill_attack(self, other):
         opp = self.select(other)
         if opp is not None:
-            infos = self._teams[self._range].attack_s(other.teams[opp], self._teams, other.teams, warth)[:]
+            infos = self._teams[self._range].attack_s(other.teams[opp], self._teams, other.teams, self._warth)[:]
             for info in infos:
                 self._info.append(info)
 
