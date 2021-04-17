@@ -5,9 +5,9 @@ from abc import ABCMeta, abstractmethod
 import pygame
 
 
-from Naruto.talent import *
-from Naruto.skills import *
-from Naruto.tools import is_none
+from talent import *
+from skills import *
+from tools import is_none
 
 
 class Person(object, metaclass=ABCMeta):

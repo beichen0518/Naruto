@@ -2,9 +2,9 @@ import time
 
 import pygame
 
-from Naruto.person import *
-from Naruto.role import *
-from Naruto.thread import *
+from person import *
+from role import *
+from thread import *
 
 ONETIME = 0.05
 DOUBLETIMES = 0.025

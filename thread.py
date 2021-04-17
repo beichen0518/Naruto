@@ -3,7 +3,7 @@ from time import sleep
 
 import pygame
 
-from Naruto.tools import display_info
+from tools import display_info
 
 
 class GameUpdate(Thread):

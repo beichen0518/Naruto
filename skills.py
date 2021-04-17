@@ -1,6 +1,6 @@
 from abc import ABCMeta
 from random import randint, choice
-from Naruto.debuff import Paralysis
+from debuff import Paralysis
 
 
 class Skill(object, metaclass=ABCMeta):

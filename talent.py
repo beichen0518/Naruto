@@ -1,6 +1,6 @@
 from random import randint
 from abc import ABCMeta
-from Naruto.debuff import Firing
+from debuff import Firing
 
 
 class Talent(object, metaclass=ABCMeta):

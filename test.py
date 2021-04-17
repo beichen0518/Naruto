@@ -1,6 +1,6 @@
 import time
 
-from Naruto.person import *
+from person import *
 
 
 def main():
